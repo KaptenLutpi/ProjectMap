@@ -260,93 +260,93 @@ chart_container = """
 m.get_root().html.add_child(folium.Element(chart_container))
 
 # === 10. Inject Chart Script ===
+# Pastikan tidak ada spasi di antara f dan """
 chart_script = f"""
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-
 let chartObj = null;
 
-// DATASET PYTHON → JAVASCRIPT
-const loanLabels   = {json.dumps(loan_labels)};
-const loanData     = {json.dumps(loan_values)};
-
+// DATASET PYTHON -> JAVASCRIPT
+const loanLabels = {json.dumps(loan_labels)};
+const loanData = {json.dumps(loan_values)};
 const rejectLabels = {json.dumps(reject_labels)};
-const rejectData   = {json.dumps(reject_values)};
+const rejectData = {json.dumps(reject_values)};
+const usrLabels = {json.dumps(usr_labels)};
+const usrData = {json.dumps(usr_values)};
+const ktpLabels = {json.dumps(ktp_labels)};
+const ktpData = {json.dumps(ktp_values)};
 
-const usrLabels    = {json.dumps(usr_labels)};
-const usrData      = {json.dumps(usr_values)};
+function renderChart(labels, data, color, labelName) {{
+    const ctx = document.getElementById('chartReject').getContext('2d');
+    
+    if (chartObj) {{
+        chartObj.destroy();
+    }}
 
-const ktpLabels    = {json.dumps(ktp_labels)};
-const ktpData      = {json.dumps(ktp_values)};
-
-
-function renderChart(labels, data, color) {{
-    if (chartObj) chartObj.destroy();
-
-    chartObj = new Chart(
-        document.getElementById('chartReject').getContext('2d'),
-        {{
-            type: 'bar',
-            data: {{
-                labels: labels,
-                datasets: [{{
-                    label: 'OS',
-                    data: data,
-                    backgroundColor: color
-                }}]
-            }},
-            options: {{
-                indexAxis: 'y',
-                maintainAspectRatio: false,
-                plugins: {{
-                    legend: {{ display: false }}
-                }}
+    chartObj = new Chart(ctx, {{
+        type: 'bar',
+        data: {{
+            labels: labels,
+            datasets: [{{
+                label: labelName,
+                data: data,
+                backgroundColor: color,
+                borderWidth: 1
+            }}]
+        }},
+        options: {{
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{
+                legend: {{ display: true }}
             }}
         }}
-    );
+    }});
 }}
 
 function activateButton(active, btns) {{
     btns.forEach(btn => {{ 
         const el = document.getElementById(btn);
-        el.style.background = "transparent";
-        el.style.color = el.style.borderColor;
+        if (el) {{
+            el.style.background = "transparent";
+            el.style.color = el.style.borderColor;
+        }}
     }});
     const act = document.getElementById(active);
-    act.style.background = act.style.borderColor;
-    act.style.color = "white";
+    if (act) {{
+        act.style.background = act.style.borderColor;
+        act.style.color = "white";
+    }}
 }}
-
-// === BUTTON BEHAVIOR ===
 
 function showLoan() {{
     activateButton("btnLoan", ["btnLoan","btnReject","btnUSR","btnKTP"]);
-    document.getElementById("chartTitle").innerText = "Loan Created — Top 10 OS (label NOA)";
-    renderChart(loanLabels, loanData, "rgba(2,117,216,0.7)");
+    document.getElementById("chartTitle").innerText = "Loan Created — Top 10 OS";
+    renderChart(loanLabels, loanData, "rgba(2,117,216,0.7)", "OS");
 }}
 
 function showReject() {{
     activateButton("btnReject", ["btnLoan","btnReject","btnUSR","btnKTP"]);
     document.getElementById("chartTitle").innerText = "Reject Total — Top 10 NOA";
-    renderChart(rejectLabels, rejectData, "rgba(217,83,79,0.7)");
+    renderChart(rejectLabels, rejectData, "rgba(217,83,79,0.7)", "NOA");
 }}
 
 function showUSR() {{
     activateButton("btnUSR", ["btnLoan","btnReject","btnUSR","btnKTP"]);
-    document.getElementById("chartTitle").innerText = "USR Reject — Top 10 OS (label NOA)";
-    renderChart(usrLabels, usrData, "rgba(255,136,0,0.7)");
+    document.getElementById("chartTitle").innerText = "USR Reject — Top 10 OS";
+    renderChart(usrLabels, usrData, "rgba(255,136,0,0.7)", "OS");
 }}
 
 function showKTP() {{
     activateButton("btnKTP", ["btnLoan","btnReject","btnUSR","btnKTP"]);
-    document.getElementById("chartTitle").innerText = "KTP Reject — Top 10 OS (label NOA)";
-    renderChart(ktpLabels, ktpData, "rgba(111,66,193,0.7)");
+    document.getElementById("chartTitle").innerText = "KTP Reject — Top 10 OS";
+    renderChart(ktpLabels, ktpData, "rgba(111,66,193,0.7)", "OS");
 }}
 
-// DEFAULT = LOAN CREATED
-showLoan();
-
+// Jalankan default setelah semua fungsi terdefinisi
+setTimeout(() => {{ showLoan(); }}, 100);
 </script>
 """
 
