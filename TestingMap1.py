@@ -72,19 +72,143 @@ Fullscreen(position='topleft').add_to(m)
 colormap = cm.linear.YlGnBu_09.scale(float(gdf["total_loan_created"].min()), float(gdf["total_loan_created"].max()))
 colormap.caption = "Intensitas Pencairan (Loan Created)"
 
-folium.GeoJson(
+# === 8. Konfigurasi Tooltip (MUNCUL SAAT HOVER) ===
+hover_tooltip = folium.GeoJsonTooltip(
+    fields=["PROVINSI", "total_loan_created", "total_reject", "os_potensi_usr"],
+    aliases=["Provinsi", "Pencairan (NOA)", "Total Reject (NOA)", "Potensi USR (OS)"],
+    localize=True,
+    sticky=True,
+    style="""
+        background-color: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+        padding: 8px;
+        color: #444;
+        white-space: nowrap;
+   """
+)
+
+# === 9. Konfigurasi Popup (MUNCUL SAAT KLIK) ===
+click_popup = folium.features.GeoJsonPopup(
+    fields=[
+        "total_reject_slik", "total_reject_sicd_raya", "total_reject_sicd_bri",
+        "total_reject_blacklist_company", "total_reject_score_500", "total_reject_failed_to_approve"
+    ],
+    aliases=[
+        "• SLIK", "• SICD Raya", "• SICD BRI",
+        "• Blacklist Company", "• Score < 500", "• RPC"
+    ],
+    localize=True,
+    labels=True,
+    style="""
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+        width: auto;
+        min-width: 180px;
+        padding: 5px;
+        white-space: nowrap;
+    """
+)
+
+# === 10. Gabungkan ke dalam Map ===
+geojson = folium.GeoJson(
     gdf,
     style_function=lambda x: {
         "fillColor": colormap(x["properties"]["total_loan_created"]),
-        "color": "black", "weight": 0.5, "fillOpacity": 0.7,
+        "color": "black",
+        "weight": 0.5,
+        "fillOpacity": 0.7,
     },
-    tooltip=folium.GeoJsonTooltip(
-        fields=["PROVINSI", "total_loan_created", "total_reject", "os_potensi_ktp", "os_potensi_usr", "os_loan_created"],
-        aliases=["Provinsi:", "NOA Pencairan:", "NOA Reject:", "OS KTP Reject:", "OS USR Reject:", "OS Loan Created:"],
-        localize=True
-    )
+    tooltip=hover_tooltip,
+    popup=click_popup
 ).add_to(m)
+
 colormap.add_to(m)
+
+# === CSS & JS FIX (Final Styling) ===
+m.get_root().header.add_child(folium.Element("""
+    <style>
+        .leaflet-container { font-family: 'Segoe UI', sans-serif !important; }
+        
+        /* Merapikan Popup agar ramping */
+        .leaflet-popup-content-wrapper { 
+            border-radius: 8px !important; 
+            padding: 2px !important;
+        }
+        .leaflet-popup-content {
+            margin: 10px !important;
+            line-height: 1.4 !important;
+        }
+
+        /* Hilangkan Hover saat Klik */
+        .leaflet-popup-open ~ .leaflet-tooltip-pane {
+            display: none !important;
+        }
+    </style>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var observer = new MutationObserver(function(mutations) {
+                var pane = document.querySelector('.leaflet-tooltip-pane');
+                if (!pane) return;
+                if (document.querySelector('.leaflet-popup')) {
+                    pane.style.visibility = 'hidden';
+                } else {
+                    pane.style.visibility = 'visible';
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        });
+    </script>
+"""))
+
+# # === CSS & JS FIX (HIDE HOVER SAAT KLIK) ===
+m.get_root().header.add_child(folium.Element("""
+    <style>
+        /* Font styling agar lebih rapi */
+        .leaflet-container { font-family: 'Segoe UI', Tahoma, sans-serif !important; }
+        
+        /* Merapikan kotak Popup */
+        .leaflet-popup-content-wrapper { 
+            border-radius: 12px !important; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important; 
+        }
+
+        /* Logic: Sembunyikan SEMUA tooltip jika ada popup yang sedang terbuka */
+        .leaflet-popup-open ~ .leaflet-tooltip-pane,
+        .leaflet-has-popup.leaflet-popup-open .leaflet-tooltip {
+            display: none !important;
+        }
+        
+        /* Tambahan: Jika popup sedang aktif di map, paksa tooltip jadi transparan */
+        body.popup-open .leaflet-tooltip-pane {
+            display: none !important;
+        }
+    </style>
+    
+    <script>
+        // Script tambahan untuk mendeteksi kapan popup dibuka/tutup
+        document.addEventListener('DOMContentLoaded', function() {
+            var mapElement = document.querySelector('.leaflet-container');
+            if (mapElement) {
+                // Monitor perubahan pada map untuk menyembunyikan tooltip secara paksa
+                var observer = new MutationObserver(function(mutations) {
+                    if (document.querySelector('.leaflet-popup')) {
+                        document.querySelector('.leaflet-tooltip-pane').style.display = 'none';
+                    } else {
+                        document.querySelector('.leaflet-tooltip-pane').style.display = 'block';
+                    }
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
+    </script>
+"""))
+
 
 # === 8. HEADER UTAMA (Maret 2026) ===
 header_html = """
@@ -191,6 +315,6 @@ setTimeout(() => {{ showLoan(); }}, 300);
 """
 m.get_root().html.add_child(folium.Element(chart_script))
 
-# === 11. Save ===
+# === 12. Save ===
 m.save("index.html")
-print("Sukses! Header 'MAP PENCAIRAN MARET 2026' telah ditambahkan di bagian atas.")
+print("Sukses!1")
